@@ -1,0 +1,97 @@
+:root {
+  --bs-primary: #21caab;
+  --bs-dark: #111C28;
+  --bs-body-color: #111C28;
+  --bs-body-bg: #ffffff;
+  --bs-border-color: rgba(17, 28, 40, 0.12);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-bg: #1bb49a;
+  --bs-btn-hover-border-color: #1bb49a;
+  --bs-btn-active-bg: #179d86;
+  --bs-btn-active-border-color: #179d86;
+}
+
+.plan-sticky-col {
+  position: sticky;
+  left: 0;
+  background: #fff;
+  z-index: 2;
+  min-width: 140px;
+}
+
+.plan-cell {
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  user-select: none;
+  text-align: center;
+  vertical-align: middle;
+  border-radius: 6px;
+}
+
+.plan-cell.is-on {
+  background: rgba(33, 202, 171, 0.18);
+  outline: 1px solid rgba(33, 202, 171, 0.45);
+}
+
+.channel-tile {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 14px;
+  padding: 14px;
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+}
+
+.channel-tile.is-on {
+  outline: 2px solid rgba(33, 202, 171, 0.55);
+  background: rgba(33, 202, 171, 0.08);
+}
+
+.mini-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.progress {
+  height: 10px;
+  background: rgba(17, 28, 40, 0.08);
+}
+.progress-bar {
+  background: var(--bs-primary);
+}
+.progress-bar.is-dark {
+  background: var(--bs-dark);
+}
+:root {
+  --metric-orange: #ffcf75;
+  --metric-lilac: #bbaee2;
+}
+
+/* progress bar colours for summary metrics */
+.progress-bar.bar-orange { background: var(--metric-orange); }
+.progress-bar.bar-lilac  { background: var(--metric-lilac); }
+.progress-bar.bar-mint   { background: var(--bs-primary); }
+
+/* Make plan gridlines visible but subtle */
+#planTable th,
+#planTable td {
+  border: 1px solid rgba(17, 28, 40, 0.10) !important;
+}
+
+.plan-cell {
+  border-radius: 6px;
+  background: #fff;
+}
+
+/* Keep sticky first column clean */
+.plan-sticky-col {
+  border-right: 1px solid rgba(17, 28, 40, 0.14) !important;
+}
+
+.shadow-sm{
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05) !important;
+}

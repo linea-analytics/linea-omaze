@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scenario Planning Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bs-primary: #2563eb;
+            --bs-primary-rgb: 37, 99, 235;
+            --bs-secondary: #64748b;
+            --bs-success: #10b981;
+            --bs-body-bg: #f8fafc;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+        
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .page {
+            display: none;
+            padding: 3rem;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        .logo {
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+        
+        .channel-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .channel-card:hover {
+            border-color: var(--bs-primary);
+            transform: translateY(-2px);
+        }
+        
+        .channel-card.active {
+            border-color: var(--bs-primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        .month-cell {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #e2e8f0;
+            cursor: pointer;
+            transition: background 0.2s;
+            text-align: center;
+            line-height: 50px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .month-cell:hover {
+            background: #f1f5f9;
+        }
+        
+        .month-cell.active {
+            background: var(--bs-primary);
+            color: white;
+        }
+        
+        .databar {
+            height: 20px;
+            background: linear-gradient(90deg, var(--bs-primary) 0%, var(--bs-success) 100%);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        .results-table td {
+            position: relative;
+            padding: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- PAGE 1: Home -->
+        <div id="page1" class="page active">
+            <div class="text-center">
+                <h1 class="display-4 fw-bold mb-3">Scenario Planning Tool</h1>
+                <p class="lead text-muted mb-5">Running optimisations to generate the ideal marketing strategy for every outcome</p>
+                <button class="btn btn-primary btn-lg px-5 py-3" onclick="goToPage(2)">
+                    <i class="bi bi-plus-circle me-2"></i>Create a Scenario
+                </button>
+                <div class="mt-5 logo">Powered by linea</div>
+            </div>
+        </div>
+
+        <!-- PAGE 2: Scenario Plan -->
+        <div id="page2" class="page">
+            <h2 class="mb-4">Prize Draw Schedule</h2>
+            <p class="text-muted mb-4">Select the months when each prize category campaign is active</p>
+            
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 100px;">Category</th>
+                            <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th>
+                            <th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scheduleTable"></tbody>
+                </table>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <button class="btn btn-outline-secondary" onclick="goToPage(1)">
+                    <i class="bi bi-arrow-left me-2"></i>Back
+                </button>
+                <button class="btn btn-primary" onclick="goToPage(3)">
+                    Next<i class="bi bi-arrow-right ms-2"></i>
+                </button>
+            </div>
+            <div class="text-center mt-4 logo">Powered by linea</div>
+        </div>
+
+        <!-- PAGE 3: Marketing Channels -->
+        <div id="page3" class="page">
+            <h2 class="mb-4">Marketing Channels</h2>
+            <p class="text-muted mb-4">Select the channels to include in your optimization</p>
+            
+            <div class="row g-3" id="channelGrid"></div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <button class="btn btn-outline-secondary" onclick="goToPage(2)">
+                    <i class="bi bi-arrow-left me-2"></i>Back
+                </button>
+                <button class="btn btn-primary" onclick="goToPage(4)">
+                    Next<i class="bi bi-arrow-right ms-2"></i>
+                </button>
+            </div>
+            <div class="text-center mt-4 logo">Powered by linea</div>
+        </div>
+
+        <!-- PAGE 4: Run Scenario -->
+        <div id="page4" class="page">
+            <h2 class="mb-4">Scenario Configuration</h2>
+            
+            <div class="mb-4">
+                <label class="form-label">Scenario Name</label>
+                <input type="text" class="form-control form-control-lg" id="scenarioName" placeholder="e.g., Q1 2024 Campaign">
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label">Total Budget (£)</label>
+                <input type="number" class="form-control form-control-lg" id="budgetInput" placeholder="e.g., 500000" min="0" step="10000">
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <button class="btn btn-outline-secondary" onclick="goToPage(3)">
+                    <i class="bi bi-arrow-left me-2"></i>Back
+                </button>
+                <button class="btn btn-success btn-lg px-5" onclick="runOptimization()">
+                    <i class="bi bi-play-circle me-2"></i>Run and Save
+                </button>
+            </div>
+            <div class="text-center mt-4 logo">Powered by linea</div>
+        </div>
+
+        <!-- PAGE 5: View Scenario -->
+        <div id="page5" class="page">
+            <h2 class="mb-4">Optimization Results: <span id="resultScenarioName"></span></h2>
+            <p class="text-muted mb-4">Optimal budget allocation across channels and prize categories</p>
+            
+            <div class="table-responsive">
+                <table class="table results-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Channel</th>
+                            <th>XXL</th>
+                            <th>XL</th>
+                            <th>L</th>
+                            <th>M</th>
+                            <th>S</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTable"></tbody>
+                </table>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-4">
+                <button class="btn btn-outline-secondary" onclick="goToPage(4)">
+                    <i class="bi bi-arrow-left me-2"></i>Back
+                </button>
+                <button class="btn btn-primary" onclick="goToPage(1)">
+                    <i class="bi bi-house me-2"></i>New Scenario
+                </button>
+            </div>
+            <div class="text-center mt-4 logo">Powered by linea</div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

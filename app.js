@@ -4,7 +4,7 @@ const PRIZES = ["XXL", "XL", "L", "M", "S"];
 const DAYS = 30;
 
 const CHANNELS = [
-  { id: "google_search", label: "Google Search", icon: "bi-search" },
+  { id: "google_search", label: "Google Search", icon: "bi-google" },
   { id: "tiktok_video", label: "TikTok Video", icon: "bi-tiktok" },
   { id: "meta_video", label: "Meta Video", icon: "bi-meta" },
   { id: "youtube", label: "YouTube", icon: "bi-youtube" },
@@ -231,24 +231,24 @@ function initCurveParams() {
       // Means by prize (bigger prize draws usually have larger effect multipliers)
       const prizeMean = (
         prize === "XXL" ? 1.35 :
-        prize === "XL"  ? 1.20 :
-        prize === "L"   ? 1.05 :
-        prize === "M"   ? 0.95 : 0.85
+          prize === "XL" ? 1.20 :
+            prize === "L" ? 1.05 :
+              prize === "M" ? 0.95 : 0.85
       );
 
       // Channel-level means
       const coefMean = (
         ch.id.includes("search") ? 1.15 :
-        ch.id.includes("youtube") ? 1.10 :
-        ch.id.includes("tiktok") ? 1.05 :
-        ch.id.includes("meta") ? 1.00 :
-        ch.id.includes("outdoor") ? 0.90 :
-        0.95
+          ch.id.includes("youtube") ? 1.10 :
+            ch.id.includes("tiktok") ? 1.05 :
+              ch.id.includes("meta") ? 1.00 :
+                ch.id.includes("outdoor") ? 0.90 :
+                  0.95
       );
 
       // Randomness around means
       const coef = (600 + 900 * rnd()) * coefMean;       // roughly scales customers
-      const dim  = (25000 + 30000 * rnd());              // diminishing scale (higher = slower saturation)
+      const dim = (25000 + 30000 * rnd());              // diminishing scale (higher = slower saturation)
       const prizeParam = prizeMean * (0.85 + 0.3 * rnd());
 
       state.curveParams.set(keyFor(prize, ch.id), { coef, dim, prizeParam });
@@ -414,8 +414,8 @@ function renderSummaryTable(optimAlloc, prevAlloc) {
       colour: "orange",
       rows: [
         { sub: "Optimised", get: p => optim[p].spend, fmt: fmtGBP },
-        { sub: "Previous",  get: p => prev[p].spend,  fmt: fmtGBP },
-        { sub: "Difference",get: p => (optim[p].spend - prev[p].spend), fmt: fmtGBP },
+        { sub: "Previous", get: p => prev[p].spend, fmt: fmtGBP },
+        { sub: "Difference", get: p => (optim[p].spend - prev[p].spend), fmt: fmtGBP },
       ]
     },
     {
@@ -424,8 +424,8 @@ function renderSummaryTable(optimAlloc, prevAlloc) {
       colour: "lilac",
       rows: [
         { sub: "Optimised", get: p => optim[p].customers, fmt: fmtInt },
-        { sub: "Previous",  get: p => prev[p].customers,  fmt: fmtInt },
-        { sub: "Difference",get: p => (optim[p].customers - prev[p].customers), fmt: fmtInt },
+        { sub: "Previous", get: p => prev[p].customers, fmt: fmtInt },
+        { sub: "Difference", get: p => (optim[p].customers - prev[p].customers), fmt: fmtInt },
       ]
     },
     {
@@ -434,8 +434,8 @@ function renderSummaryTable(optimAlloc, prevAlloc) {
       colour: "mint",
       rows: [
         { sub: "Optimised", get: p => cac(optim[p].spend, optim[p].customers), fmt: v => fmtGBP(v) },
-        { sub: "Previous",  get: p => cac(prev[p].spend, prev[p].customers),  fmt: v => fmtGBP(v) },
-        { sub: "Difference",get: p => (cac(optim[p].spend, optim[p].customers) - cac(prev[p].spend, prev[p].customers)), fmt: v => fmtGBP(v) },
+        { sub: "Previous", get: p => cac(prev[p].spend, prev[p].customers), fmt: v => fmtGBP(v) },
+        { sub: "Difference", get: p => (cac(optim[p].spend, optim[p].customers) - cac(prev[p].spend, prev[p].customers)), fmt: v => fmtGBP(v) },
       ]
     }
   ];
@@ -459,12 +459,30 @@ function renderSummaryTable(optimAlloc, prevAlloc) {
     `;
   }
 
+  // Totals (no bars). CAC totals are computed from total spend / total customers.
+  function totalForRow(metricKey, rowObj) {
+    if (metricKey === "cac") {
+      const spendTotal = PRIZES.reduce((s, p) => s + (optim[p]?.spend ?? 0), 0);
+      const custTotal  = PRIZES.reduce((s, p) => s + (optim[p]?.customers ?? 0), 0);
+
+      const spendPrevTotal = PRIZES.reduce((s, p) => s + (prev[p]?.spend ?? 0), 0);
+      const custPrevTotal  = PRIZES.reduce((s, p) => s + (prev[p]?.customers ?? 0), 0);
+
+      if (rowObj.sub === "Optimised") return cac(spendTotal, custTotal);
+      if (rowObj.sub === "Previous") return cac(spendPrevTotal, custPrevTotal);
+      return cac(spendTotal, custTotal) - cac(spendPrevTotal, custPrevTotal);
+    }
+
+    return PRIZES.reduce((s, p) => s + (rowObj.get(p) ?? 0), 0);
+  }
+
   const table = document.getElementById("summaryTable");
   table.innerHTML = `
     <thead class="table-light">
       <tr>
         <th style="min-width: 220px;">Metric</th>
         ${PRIZES.map(p => `<th class="text-center">${p}</th>`).join("")}
+        <th class="text-center">Total</th>
       </tr>
     </thead>
     <tbody>
@@ -473,7 +491,7 @@ function renderSummaryTable(optimAlloc, prevAlloc) {
         const colourClass =
           m.colour === "orange" ? "bar-orange" :
           m.colour === "lilac"  ? "bar-lilac"  :
-          "bar-mint";
+                                  "bar-mint";
 
         return m.rows.map((r, idx) => `
           <tr>
@@ -481,6 +499,7 @@ function renderSummaryTable(optimAlloc, prevAlloc) {
               ${idx === 0 ? m.label : `<span class="text-secondary">${m.label}</span>`}
               <div class="small text-secondary">${r.sub}</div>
             </td>
+
             ${PRIZES.map(p => {
               const v = r.get(p);
               return `
@@ -490,12 +509,22 @@ function renderSummaryTable(optimAlloc, prevAlloc) {
                 </td>
               `;
             }).join("")}
+
+            ${(() => {
+              const tv = totalForRow(m.key, r);
+              return `
+                <td class="text-center mini-mono fw-semibold">
+                  <div>${r.fmt(tv)}</div>
+                </td>
+              `;
+            })()}
           </tr>
         `).join("");
       }).join("")}
     </tbody>
   `;
 }
+
 
 
 function renderDetailTable(optimAlloc) {
@@ -517,13 +546,13 @@ function renderDetailTable(optimAlloc) {
     </thead>
     <tbody>
       ${CHANNELS.map(ch => {
-        return `
+    return `
           <tr>
             <td class="fw-semibold">${ch.label}</td>
             ${PRIZES.map(p => {
-              const v = matrix[ch.id][p];
-              const pct = maxCell > 0 ? clamp((v / maxCell) * 100, 0, 100) : 0;
-              return `
+      const v = matrix[ch.id][p];
+      const pct = maxCell > 0 ? clamp((v / maxCell) * 100, 0, 100) : 0;
+      return `
                 <td class="text-center mini-mono">
                   <div>${fmtGBP(v)}</div>
                   <div class="progress mt-1" aria-hidden="true">
@@ -531,21 +560,21 @@ function renderDetailTable(optimAlloc) {
                   </div>
                 </td>
               `;
-            }).join("")}
+    }).join("")}
           </tr>
         `;
-      }).join("")}
+  }).join("")}
 
       ${(() => {
-        const totals = Object.fromEntries(PRIZES.map(p => [p, 0]));
-        for (const ch of CHANNELS) for (const p of PRIZES) totals[p] += matrix[ch.id][p];
-        return `
+      const totals = Object.fromEntries(PRIZES.map(p => [p, 0]));
+      for (const ch of CHANNELS) for (const p of PRIZES) totals[p] += matrix[ch.id][p];
+      return `
           <tr class="table-light">
             <td class="fw-semibold">Total</td>
             ${PRIZES.map(p => `<td class="text-center mini-mono fw-semibold">${fmtGBP(totals[p])}</td>`).join("")}
           </tr>
         `;
-      })()}
+    })()}
     </tbody>
   `;
 }
@@ -577,16 +606,24 @@ document.getElementById("btnPlanClear").addEventListener("click", () => {
   updateNavPill();
 });
 
+const default_bursts = {
+  XXL: [[4, 8], [18, 21]],
+  XL: [[2, 6], [14, 17], [25, 27]],
+  L: [[8, 12], [22, 24]],
+  M: [[0, 3], [12, 14], [27, 29]],
+  S: [[6, 9], [16, 19]],
+};
+
 document.getElementById("btnPlanFillDemo").addEventListener("click", () => {
   // A simple staggered pattern
   for (const p of PRIZES) state.scenario.plan[p] = Array(DAYS).fill(false);
 
   const bursts = {
     XXL: [[4, 8], [18, 21]],
-    XL:  [[2, 6], [14, 17], [25, 27]],
-    L:   [[8, 12], [22, 24]],
-    M:   [[0, 3], [12, 14], [27, 29]],
-    S:   [[6, 9], [16, 19]],
+    XL: [[2, 6], [14, 17], [25, 27]],
+    L: [[8, 12], [22, 24]],
+    M: [[0, 3], [12, 14], [27, 29]],
+    S: [[6, 9], [16, 19]],
   };
 
   for (const prize of PRIZES) {
@@ -599,6 +636,29 @@ document.getElementById("btnPlanFillDemo").addEventListener("click", () => {
   refreshRunStats();
   updateNavPill();
 });
+
+function setDefaultState() {
+  // A simple staggered pattern
+  for (const p of PRIZES) state.scenario.plan[p] = Array(DAYS).fill(false);
+
+  const bursts = {
+    XXL: [[4, 8], [18, 21]],
+    XL: [[2, 6], [14, 17], [25, 27]],
+    L: [[8, 12], [22, 24]],
+    M: [[0, 3], [12, 14], [27, 29]],
+    S: [[6, 9], [16, 19]],
+  };
+
+  for (const prize of PRIZES) {
+    for (const [a, b] of bursts[prize]) {
+      for (let d = a; d <= b; d++) state.scenario.plan[prize][d] = true;
+    }
+  }
+
+  buildPlanTable();
+  refreshRunStats();
+
+}
 
 document.getElementById("btnChannelsAll").addEventListener("click", () => {
   state.scenario.selectedChannels = new Set(CHANNELS.map(c => c.id));
@@ -625,6 +685,7 @@ document.getElementById("scenarioBudget").addEventListener("input", (e) => {
 document.getElementById("btnRunScenario").addEventListener("click", () => {
   const name = document.getElementById("scenarioName").value.trim();
   const budget = Number(document.getElementById("scenarioBudget").value || 0);
+  setDefaultState();
 
   state.scenario.name = name || "Untitled scenario";
   state.scenario.budget = clamp(budget, 0, 50_000_000);

@@ -407,15 +407,64 @@ function renderSummaryTable(optimAlloc, prevAlloc) {
 
   function cac(sp, cu) { return cu > 0 ? (sp / cu) : 0; }
 
+  // Compact number formatting: 1.25M, 101K, 23.4K (up to ~3 significant digits)
+  function fmtCompactNumber(v) {
+    const n = Number(v) || 0;
+    const sign = n < 0 ? "-" : "";
+    const a = Math.abs(n);
+
+    if (a === 0) return "0";
+
+    const fmt = (x) =>
+      x >= 100 ? Math.round(x).toString()
+        : x >= 10 ? (Math.round(x * 10) / 10).toFixed(1).replace(/\.0$/, "")
+          : (Math.round(x * 100) / 100).toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+
+    // K
+    if (a >= 1e3 && a < 1e6) {
+      const k = a / 1e3;
+      const kStr = fmt(k);
+      const kNum = Number(kStr);
+      if (kNum >= 1000) return `${sign}1M`; // rollover 1000K -> 1M
+      return `${sign}${kStr}K`;
+    }
+
+    // M
+    if (a >= 1e6) {
+      const m = a / 1e6;
+      const mStr = fmt(m);
+      return `${sign}${mStr}M`;
+    }
+
+    // < 1K
+    return `${sign}${fmt(a)}`;
+  }
+
+
+  function fmtCompactGBP(v) {
+    const n = Number(v) || 0;
+    const sign = n < 0 ? "-" : "";
+    const a = Math.abs(n);
+    return `${sign}£${fmtCompactNumber(a)}`;
+  }
+
+  function fmtCompactInt(v) {
+    return fmtCompactNumber(v);
+  }
+
+  function clamp(v, a, b) {
+    return Math.max(a, Math.min(b, v));
+  }
+
   const metrics = [
     {
       key: "spend",
       label: "Spend",
       colour: "orange",
       rows: [
-        { sub: "Optimised", get: p => optim[p].spend, fmt: fmtGBP },
-        { sub: "Previous", get: p => prev[p].spend, fmt: fmtGBP },
-        { sub: "Difference", get: p => (optim[p].spend - prev[p].spend), fmt: fmtGBP },
+        { sub: "Optimised", get: p => optim[p].spend, fmt: fmtCompactGBP },
+        { sub: "Previous", get: p => prev[p].spend, fmt: fmtCompactGBP },
+        { sub: "Difference", get: p => (optim[p].spend - prev[p].spend), fmt: fmtCompactGBP },
       ]
     },
     {
@@ -423,9 +472,9 @@ function renderSummaryTable(optimAlloc, prevAlloc) {
       label: "New customers",
       colour: "lilac",
       rows: [
-        { sub: "Optimised", get: p => optim[p].customers, fmt: fmtInt },
-        { sub: "Previous", get: p => prev[p].customers, fmt: fmtInt },
-        { sub: "Difference", get: p => (optim[p].customers - prev[p].customers), fmt: fmtInt },
+        { sub: "Optimised", get: p => optim[p].customers, fmt: fmtCompactInt },
+        { sub: "Previous", get: p => prev[p].customers, fmt: fmtCompactInt },
+        { sub: "Difference", get: p => (optim[p].customers - prev[p].customers), fmt: fmtCompactInt },
       ]
     },
     {
@@ -433,9 +482,9 @@ function renderSummaryTable(optimAlloc, prevAlloc) {
       label: "CAC",
       colour: "mint",
       rows: [
-        { sub: "Optimised", get: p => cac(optim[p].spend, optim[p].customers), fmt: v => fmtGBP(v) },
-        { sub: "Previous", get: p => cac(prev[p].spend, prev[p].customers), fmt: v => fmtGBP(v) },
-        { sub: "Difference", get: p => (cac(optim[p].spend, optim[p].customers) - cac(prev[p].spend, prev[p].customers)), fmt: v => fmtGBP(v) },
+        { sub: "Optimised", get: p => cac(optim[p].spend, optim[p].customers), fmt: fmtCompactGBP },
+        { sub: "Previous", get: p => cac(prev[p].spend, prev[p].customers), fmt: fmtCompactGBP },
+        { sub: "Difference", get: p => (cac(optim[p].spend, optim[p].customers) - cac(prev[p].spend, prev[p].customers)), fmt: fmtCompactGBP },
       ]
     }
   ];
@@ -463,10 +512,10 @@ function renderSummaryTable(optimAlloc, prevAlloc) {
   function totalForRow(metricKey, rowObj) {
     if (metricKey === "cac") {
       const spendTotal = PRIZES.reduce((s, p) => s + (optim[p]?.spend ?? 0), 0);
-      const custTotal  = PRIZES.reduce((s, p) => s + (optim[p]?.customers ?? 0), 0);
+      const custTotal = PRIZES.reduce((s, p) => s + (optim[p]?.customers ?? 0), 0);
 
       const spendPrevTotal = PRIZES.reduce((s, p) => s + (prev[p]?.spend ?? 0), 0);
-      const custPrevTotal  = PRIZES.reduce((s, p) => s + (prev[p]?.customers ?? 0), 0);
+      const custPrevTotal = PRIZES.reduce((s, p) => s + (prev[p]?.customers ?? 0), 0);
 
       if (rowObj.sub === "Optimised") return cac(spendTotal, custTotal);
       if (rowObj.sub === "Previous") return cac(spendPrevTotal, custPrevTotal);
@@ -476,54 +525,71 @@ function renderSummaryTable(optimAlloc, prevAlloc) {
     return PRIZES.reduce((s, p) => s + (rowObj.get(p) ?? 0), 0);
   }
 
+  // Negative values red by default, except CAC negatives should be green
+  function valueClass(metricKey, v) {
+    const n = Number(v) || 0;
+    if (n >= 0) return "";
+    if (metricKey === "cac") return "text-success";
+    return "text-danger";
+  }
+
   const table = document.getElementById("summaryTable");
+
+  // Equal-width columns (including Metric + Total + each prize)
+  const colCount = 2 + PRIZES.length; // Metric + Total + prizes
+  const colWidth = `${(100 / colCount).toFixed(4)}%`;
+
   table.innerHTML = `
+    <colgroup>
+      ${Array.from({ length: colCount }, () => `<col style="width:${colWidth};">`).join("")}
+    </colgroup>
     <thead class="table-light">
       <tr>
-        <th style="min-width: 220px;">Metric</th>
-        ${PRIZES.map(p => `<th class="text-center">${p}</th>`).join("")}
+        <th class="text-start">Metric</th>
         <th class="text-center">Total</th>
+        ${PRIZES.map(p => `<th class="text-center">${p}</th>`).join("")}
       </tr>
     </thead>
     <tbody>
       ${metrics.map(m => {
-        const maxAbs = metricMaxAbs[m.key];
-        const colourClass =
-          m.colour === "orange" ? "bar-orange" :
-          m.colour === "lilac"  ? "bar-lilac"  :
-                                  "bar-mint";
+    const maxAbs = metricMaxAbs[m.key];
+    const colourClass =
+      m.colour === "orange" ? "bar-orange" :
+        m.colour === "lilac" ? "bar-lilac" :
+          "bar-mint";
 
-        return m.rows.map((r, idx) => `
-          <tr>
-            <td class="${idx === 0 ? "fw-semibold" : ""}">
-              ${idx === 0 ? m.label : `<span class="text-secondary">${m.label}</span>`}
-              <div class="small text-secondary">${r.sub}</div>
-            </td>
+    return m.rows.map((r, idx) => {
+      const totalV = totalForRow(m.key, r);
 
-            ${PRIZES.map(p => {
-              const v = r.get(p);
-              return `
-                <td class="text-center mini-mono">
-                  <div>${r.fmt(v)}</div>
-                  ${barHtml(v, maxAbs, colourClass)}
-                </td>
-              `;
-            }).join("")}
+      return `
+            <tr>
+              <td class="${idx === 0 ? "fw-semibold" : ""}">
+                ${idx === 0 ? m.label : `<span class="text-secondary">${m.label}</span>`}
+                <div class="small text-secondary">${r.sub}</div>
+              </td>
 
-            ${(() => {
-              const tv = totalForRow(m.key, r);
-              return `
-                <td class="text-center mini-mono fw-semibold">
-                  <div>${r.fmt(tv)}</div>
-                </td>
-              `;
-            })()}
-          </tr>
-        `).join("");
+              <td class="text-center mini-mono fw-semibold ${valueClass(m.key, totalV)}">
+                <div>${r.fmt(totalV)}</div>
+              </td>
+
+              ${PRIZES.map(p => {
+        const v = r.get(p);
+        return `
+                  <td class="text-center mini-mono ${valueClass(m.key, v)}">
+                    <div>${r.fmt(v)}</div>
+                    ${barHtml(v, maxAbs, colourClass)}
+                  </td>
+                `;
       }).join("")}
+            </tr>
+          `;
+    }).join("");
+  }).join("")}
     </tbody>
   `;
 }
+
+
 
 
 
@@ -657,6 +723,7 @@ function setDefaultState() {
 
   buildPlanTable();
   refreshRunStats();
+  // updateNavPill();
 
 }
 

@@ -9,7 +9,7 @@ const CHANNELS = [
   { id: "meta_video", label: "Meta Video", icon: "bi-meta" },
   { id: "youtube", label: "YouTube", icon: "bi-youtube" },
   { id: "outdoor", label: "Outdoor", icon: "bi-badge-ad" },
-  { id: "radio", label: "Radio", icon: "bi-broadcast" },
+  { id: "tv", label: "TV", icon: "bi-tv" },
   { id: "display", label: "Display", icon: "bi-window" },
   { id: "programmatic", label: "Programmatic", icon: "bi-diagram-3" },
   { id: "email", label: "Email", icon: "bi-envelope" },
@@ -23,7 +23,7 @@ const STEP = 10000;
 const state = {
   scenario: {
     name: "",
-    budget: 500000,
+    budget: 1000000,
     // plan[prize][day] boolean
     plan: Object.fromEntries(PRIZES.map(p => [p, Array(DAYS).fill(false)])),
     selectedChannels: new Set(CHANNELS.map(c => c.id)),
@@ -652,7 +652,7 @@ document.getElementById("btnCreateScenario").addEventListener("click", () => {
 
 document.getElementById("btnReset").addEventListener("click", () => {
   state.scenario.name = "";
-  state.scenario.budget = 500000;
+  state.scenario.budget = 1000000;
   state.scenario.selectedChannels = new Set(CHANNELS.map(c => c.id));
   state.scenario.plan = Object.fromEntries(PRIZES.map(p => [p, Array(DAYS).fill(false)]));
   state.results = null;
@@ -660,7 +660,7 @@ document.getElementById("btnReset").addEventListener("click", () => {
   buildPlanTable();
   buildChannelsGrid();
   document.getElementById("scenarioName").value = "";
-  document.getElementById("scenarioBudget").value = 500000;
+  document.getElementById("scenarioBudget").value = 1000000;
   document.getElementById("navScenarioPill").textContent = "No scenario";
   goTo("home");
 });
